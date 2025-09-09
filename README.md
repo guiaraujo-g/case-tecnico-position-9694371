@@ -1,8 +1,13 @@
-# Case Técnico - Ambiente de Desenvolvimento
+# Case Técnico - Automação de Processamento de Pedidos com API
+> Esse case será usado para avaliar os candidatos da posição: https://tech-career.gupy.io/jobs/9694371
 
-Este projeto contém a configuração do ambiente Docker necessário para a realização do case técnico de Analista de Integração.
+Bem-vindo(a) ao nosso case técnico! O objetivo é avaliar suas habilidades em automação de fluxos, manipulação de dados e consumo de APIs RESTful.
 
-O objetivo é que você possa focar exclusivamente na criação do fluxo de automação no N8N, sem se preocupar com a instalação e configuração da ferramenta.
+O ambiente de desenvolvimento é simplificado e baseado em Docker, permitindo que você foque totalmente na lógica da integração.
+
+## Cenário
+
+Sua tarefa é criar um fluxo de trabalho automatizado que é acionado quando um novo pedido é pago. O fluxo deve buscar os dados do cliente em uma API, transformar essas informações em um formato específico e, por fim, salvar o resultado em uma API de destino que simula um sistema de logística.
 
 ## Pré-requisitos
 
@@ -11,104 +16,59 @@ O objetivo é que você possa focar exclusivamente na criação do fluxo de auto
 
 ## Como Iniciar o Ambiente
 
-1.  **Crie o diretório para o Banco de Dados:**
-    Antes de iniciar, crie uma pasta chamada `database` no mesmo diretório onde você salvou o arquivo `docker-compose.yml`. É nesta pasta que o seu fluxo deverá salvar o arquivo `logistics.sqlite`.
-
-    ```bash
-    mkdir database
-    ```
-
-2.  **Suba os contêineres:**
+1.  **Suba o contêiner do N8N:**
     No seu terminal, na raiz do projeto (onde o arquivo `docker-compose.yml` está localizado), execute o seguinte comando:
 
     ```bash
     docker-compose up -d
     ```
+    Este comando irá baixar a imagem mais recente do N8N e iniciar o serviço. Não há dependências de banco de dados ou instalações customizadas.
 
-    Este comando fará o download da imagem do N8N (se for a primeira vez) e iniciará o serviço em background (`-d`).
-
-3.  **Acesse o N8N:**
-    Após a execução do comando, o editor do N8N estará disponível no seu navegador no seguinte endereço:
+2.  **Acesse o N8N:**
+    Aguarde um momento para a inicialização. O editor do N8N estará disponível no seu navegador no seguinte endereço:
     [**http://localhost:5678**](http://localhost:5678)
 
-    Na primeira vez que acessar, o N8N pedirá para você criar um usuário administrador. Sinta-se à vontade para usar qualquer informação.
+## Detalhes do Fluxo de Trabalho
 
-## Estrutura dos Dados (JSONs)
+Seu workflow no N8N deve seguir os seguintes passos:
 
-Para guiar o desenvolvimento do fluxo, aqui estão as estruturas de dados que você encontrará em cada etapa do processo.
-
-### 1. Payload de Entrada (Webhook)
-Este é o JSON que seu webhook receberá para iniciar o fluxo.
-
-```json
-{
-  "orderId": 101,
-  "userId": 5,
-  "status": "paid"
-}
-```
-
-### 2. Resposta da API de Usuários (Exemplo)
-Ao consultar a API `https://jsonplaceholder.typicode.com/users/{userId}` com `userId=5`, você receberá uma resposta com a seguinte estrutura.
-
-```json
-{
-  "id": 5,
-  "name": "Chelsey Dietrich",
-  "username": "Kamren",
-  "email": "Lucio_Hettinger@annie.ca",
-  "address": {
-    "street": "Skiles Walks",
-    "suite": "Suite 351",
-    "city": "Roscoeview",
-    "zipcode": "33263",
-    "geo": {
-      "lat": "-31.8129",
-      "lng": "62.5342"
-    }
-  },
-  "phone": "(254)954-1289",
-  "website": "demarco.info",
-  "company": {
-    "name": "Keebler LLC",
-    "catchPhrase": "User-centric fault-tolerant solution",
-    "bs": "revolutionize end-to-end systems"
-  }
-}
-```
-
-### 3. Objeto Final (Após a Transformação)
-Este é o formato final que seu fluxo deve gerar. Este objeto deve ser salvo no banco SQLite e enviado na notificação final.
-
-```json
-{
-  "order_id": 101,
-  "customer_name": "Chelsey Dietrich",
-  "customer_email": "Lucio_Hettinger@annie.ca",
-  "delivery_address": "Skiles Walks, Suite 351, Roscoeview, 33263",
-  "processed_at": "2025-09-08T21:05:45.000Z"
-}
-```
-**Observação:** O valor do campo `processed_at` é apenas um exemplo. Seu fluxo deve gerar este valor dinamicamente com a data e hora do processamento no formato ISO 8601.
-
-## Dicas sobre o Ambiente
-
--   **Caminho do Banco de Dados:** A pasta local `./database` foi mapeada para o diretório `/data` dentro do contêiner do N8N. Para o nó do SQLite, use o caminho `/data/logistics.sqlite` para o arquivo do banco.
--   **URL do Webhook:** Como o ambiente está rodando localmente (`N8N_TUNNEL_DISABLED=true`), a URL do seu webhook de teste será simples e direta, como `http://localhost:5678/webhook-test/SUA-URL-DE-TESTE`.
--   **Teste com cURL:** Você pode usar o comando abaixo para simular o envio de um pedido para o seu webhook. Lembre-se de substituir `{id-do-seu-webhook}` pelo caminho correto do seu fluxo.
-
-    ```bash
-    curl -X POST http://localhost:5678/webhook/{id-do-seu-webhook} \
-    -H "Content-Type: application/json" \
-    -d '{
+1.  **Gatilho (Trigger):** O fluxo deve ser iniciado por um **Webhook** que aguarda uma requisição `POST` com o seguinte payload:
+    ```json
+    {
       "orderId": 101,
       "userId": 5,
       "status": "paid"
-    }'
+    }
     ```
 
-## Ao Finalizar
+2.  **Validação:** O fluxo deve continuar apenas se o `status` for `"paid"`.
 
-Quando concluir o desenvolvimento, por favor, exporte seu workflow como um arquivo JSON (`workflow.json`) e o inclua na sua entrega, juntamente com este `README` e o `docker-compose.yml`.
+3.  **Enriquecimento de Dados:** Se a validação for positiva, o fluxo deve usar o `userId` para buscar os dados completos do usuário através de uma requisição `GET` para a API: `https://my-json-server.typicode.com/guiaraujo-g/case-tecnico-position-9694371/users/{userId}`.
+
+4.  **Transformação:** Com os dados do pedido e do cliente em mãos, o fluxo deve montar um novo objeto JSON com a seguinte estrutura final:
+    ```json
+    {
+      "order_id": 101,
+      "customer_name": "Chelsey Dietrich",
+      "customer_email": "Lucio_Hettinger@annie.ca",
+      "delivery_address": "Skiles Walks, Suite 351, Roscoeview, 33263",
+      "processed_at": "2025-09-09T12:29:00.000Z"
+    }
+    ```
+    *Observação: O valor de `processed_at` deve ser a data e hora do momento do processamento, no formato ISO 8601.*
+
+5.  **Gravação dos Dados:** O objeto JSON transformado deve ser enviado via `POST` para a seguinte API de destino:
+    `https://my-json-server.typicode.com/guiaraujo-g/case-tecnico-position-9694371/processed`
+
+## Como Testar e Verificar o Resultado
+
+1.  **Para disparar o fluxo:** Após importar e ativar seu workflow, use uma ferramenta como `curl` ou Postman para enviar o payload de teste para a URL do seu webhook.
+
+2.  **Para verificar se os dados foram salvos:** Acesse a URL da API de destino em seu navegador. Os registros que você enviou estarão listados lá:
+    [https://my-json-server.typicode.com/guiaraujo-g/case-tecnico-position-9694371/processed](https://my-json-server.typicode.com/guiaraujo-g/case-tecnico-position-9694371/processed)
+
+## O Que Entregar
+
+Ao finalizar, por favor, exporte seu workflow como um arquivo JSON (`workflow.json`) e o submeta para avaliação.
 
 Boa sorte!

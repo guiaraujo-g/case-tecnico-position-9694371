@@ -1,0 +1,26 @@
+version: '3.7'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_tech_case
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Define o fuso horário para que a data/hora gerada no fluxo esteja correta.
+      - TZ=America/Sao_Paulo
+      # Desabilita o túnel para webhooks, já que o teste será local.
+      # Isso torna a URL do webhook mais simples: http://localhost:5678/webhook/...
+      - N8N_TUNNEL_DISABLED=true
+    volumes:
+      # Volume para persistir os dados e workflows do N8N na máquina local.
+      - n8n_data:/home/node/.n8n
+      # Monta um diretório local 'database' dentro do container.
+      # O fluxo N8N deverá salvar o arquivo 'logistics.sqlite' neste caminho.
+      - ./database:/data
+    # Garante que o container tenha permissão para escrever nos volumes.
+    user: node
+
+volumes:
+  n8n_data:

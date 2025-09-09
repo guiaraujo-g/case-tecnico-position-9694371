@@ -168,17 +168,17 @@
     ],
     "logs":[
         {
-            "logId": 1,
+            "id": 1,
             "message": "User 5 created an order.",
             "timestamp": "2023-10-01T10:00:00Z"
         },
         {
-            "logId": 2,
+            "id": 2,
             "message": "User 6 updated their profile.",
             "timestamp": "2023-10-01T11:00:00Z"
         },
         {
-            "logId": 3,
+            "id": 3,
             "message": "Order 103 status changed to 'shipped'.",
             "timestamp": "2023-10-01T12:00:00Z"
         }
